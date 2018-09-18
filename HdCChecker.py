@@ -11,14 +11,29 @@ async def check_hotel(trip):
     print_c(f'Fetching price for "{trip["hotel"]}" ({hotel_url})', "run")
     html = await asks.get(hotel_url)
     soup = BeautifulSoup(html.content, "html.parser")
-    # print(soup.find_all("ul", attrs={"class": "rooms"}))
-    room = soup.find("h3", string=trip["room"])
-    pprint(room.parent.parent.find_all("li"))
+    room = soup.find(
+        "h3", string=trip["room"], attrs={"class": "room-name additional-room-info-cta"}
+    )
 
-    # 1. Find data-index of room (<li>) in h3
+    try:
+        room_price = (
+            room.parent.parent.find_all("li", attrs={"class": "rateplan"})[
+                trip["option"] - 1
+            ]
+            .find("strong", attrs={"class": "current-price"})
+            .string
+        )
+    except IndexError:
+        print("Error:")
+        print(room.parent.parent)
+        print()
+    else:
+        print_c(
+            f'Hotel "{trip["hotel"]}": room "{trip["room"]}" (option {trip["option"]}) price is {room_price} ',
+            "good",
+        )
+    # 1. Find data-index of room (<li>) from h3
     # 2. in <div class="rateplans"> [option - 1] : <strong class="current-price">250 €</strong>
-
-    print_c(f"Found !", "good")
 
 
 async def main():
@@ -47,5 +62,5 @@ if __name__ == "__main__":
         asks.init("trio")
         trio.run(main)
     except KeyboardInterrupt:
-        print("Bye bye.\n")
+        print("\nBye bye.\n")
 
