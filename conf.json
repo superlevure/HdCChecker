@@ -1,4 +1,5 @@
 {
+    "ifttt_key": "E0B46oDg5G2bCsNoat0Ki",
     "trips": [
         {
             "country": "France",
@@ -21,10 +22,10 @@
             "room": "Chambre Privilège",
             "adults": 2,
             "children": 0,
-            "option": 1,
+            "option": 2,
             "check-in": "2018-12-10",
             "check-out": "2018-12-15",
-            "price": 298
+            "price": 1000
         }
     ]
 }

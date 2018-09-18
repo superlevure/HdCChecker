@@ -1,4 +1,6 @@
-from pprint import pprint
+"""
+HoteldotComChecker 
+"""
 import trio
 import asks
 from bs4 import BeautifulSoup
@@ -7,33 +9,60 @@ from lib import print_c, conf
 
 
 async def check_hotel(trip):
-    hotel_url = f"https://fr.hotels.com/{trip['hotel_id']}/?q-check-out={trip['check-out']}&q-check-in={trip['check-in']}&q-room-0-children={trip['children']}&q-room-0-adults={trip['adults']}"
+    hotel_url = (
+        f"https://fr.hotels.com/{trip['hotel_id']}/?"
+        + f"q-check-out={trip['check-out']}"
+        + f"&q-check-in={trip['check-in']}"
+        + f"&q-room-0-children={trip['children']}"
+        + f"&q-room-0-adults={trip['adults']}"
+    )
     print_c(f'Fetching price for "{trip["hotel"]}" ({hotel_url})', "run")
     html = await asks.get(hotel_url)
     soup = BeautifulSoup(html.content, "html.parser")
-    room = soup.find(
-        "h3", string=trip["room"], attrs={"class": "room-name additional-room-info-cta"}
+    room = soup.find("h3", string=trip["room"])
+
+    for parent in room.parents:
+        if parent.name == "li":
+
+            try:
+                room_price = (
+                    parent.find_all("div", attrs={"class": "rateplan"})[
+                        trip["option"] - 1
+                    ]
+                    .find("strong", attrs={"class": "current-price"})
+                    .string
+                )
+            except IndexError:
+                room_price = (
+                    parent.find_all("li", attrs={"class": "rateplan"})[
+                        trip["option"] - 1
+                    ]
+                    .find("strong", attrs={"class": "current-price"})
+                    .string
+                )
+            break
+
+    room_price, room_price_currency = room_price.split(" ")
+    room_price = int(room_price)
+    print_c(
+        f'Hotel "{trip["hotel"]}": room "{trip["room"]}" (option {trip["option"]}) price is {room_price} {room_price_currency}',
+        "info",
     )
 
-    try:
-        room_price = (
-            room.parent.parent.find_all("li", attrs={"class": "rateplan"})[
-                trip["option"] - 1
-            ]
-            .find("strong", attrs={"class": "current-price"})
-            .string
-        )
-    except IndexError:
-        print("Error:")
-        print(room.parent.parent)
-        print()
+    if room_price == trip["price"]:
+        print_c("Room price hasn't changed", "good")
+    elif room_price > trip["price"]:
+        print_c("Room price is higher now", "good")
     else:
-        print_c(
-            f'Hotel "{trip["hotel"]}": room "{trip["room"]}" (option {trip["option"]}) price is {room_price} ',
-            "good",
+        print_c("Room price is cheaper, time to get some money back !", "bad")
+        await asks.post(
+            "https://maker.ifttt.com/trigger/HdCChecker_price_down/with/key/" + conf['ifttt_key'],
+            json={
+                "value1": trip["hotel"],
+                "value2": trip["price"] - room_price,
+                "value3": room_price_currency,
+            },
         )
-    # 1. Find data-index of room (<li>) from h3
-    # 2. in <div class="rateplans"> [option - 1] : <strong class="current-price">250 €</strong>
 
 
 async def main():
@@ -50,7 +79,9 @@ async def main():
     )
 
     hotel_count = len(conf["trips"])
-    print_c(f"{hotel_count} hotel(s) found in configuration file.")
+    print_c(
+        f"{hotel_count} hotel{'s' if hotel_count > 1 else ''} found in configuration file."
+    )
 
     async with trio.open_nursery() as nursery:
         for trip in conf["trips"]:
