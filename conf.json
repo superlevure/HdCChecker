@@ -1,0 +1,30 @@
+{
+    "trips": [
+        {
+            "country": "France",
+            "city": "Paris",
+            "hotel": "Hotel Régina Opéra Grands Boulevards",
+            "hotel_id": "ho178298",
+            "room": "Chambre Double Standard",
+            "adults": 2,
+            "children": 0,
+            "option": 2,
+            "check-in": "2018-12-20",
+            "check-out": "2018-12-25",
+            "price": 250
+        },
+        {
+            "country": "France",
+            "city": "Paris",
+            "hotel": "Libertel Canal Saint Martin",
+            "hotel_id": "ho127853",
+            "room": "Chambre Privilège",
+            "adults": 2,
+            "children": 0,
+            "option": 1,
+            "check-in": "2018-12-10",
+            "check-out": "2018-12-15",
+            "price": 298
+        }
+    ]
+}
