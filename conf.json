@@ -1,9 +1,8 @@
 {
     "ifttt_key": "E0B46oDg5G2bCsNoat0Ki",
+    "git_repo": "https://api.github.com/repos/superlevure/SRU_com",
     "trips": [
         {
-            "country": "France",
-            "city": "Paris",
             "hotel": "Hotel Régina Opéra Grands Boulevards",
             "hotel_id": "ho178298",
             "room": "Chambre Double Standard",
@@ -15,8 +14,6 @@
             "price": 250
         },
         {
-            "country": "France",
-            "city": "Paris",
             "hotel": "Libertel Canal Saint Martin",
             "hotel_id": "ho127853",
             "room": "Chambre Privilège",

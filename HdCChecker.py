@@ -1,6 +1,9 @@
 """
 HoteldotComChecker 
 """
+from socket import gaierror
+import sys
+
 import trio
 import asks
 from bs4 import BeautifulSoup
@@ -17,52 +20,55 @@ async def check_hotel(trip):
         + f"&q-room-0-adults={trip['adults']}"
     )
     print_c(f'Fetching price for "{trip["hotel"]}" ({hotel_url})', "run")
-    html = await asks.get(hotel_url)
-    soup = BeautifulSoup(html.content, "html.parser")
-    room = soup.find("h3", string=trip["room"])
-
-    for parent in room.parents:
-        if parent.name == "li":
-
-            try:
-                room_price = (
-                    parent.find_all("div", attrs={"class": "rateplan"})[
-                        trip["option"] - 1
-                    ]
-                    .find("strong", attrs={"class": "current-price"})
-                    .string
-                )
-            except IndexError:
-                room_price = (
-                    parent.find_all("li", attrs={"class": "rateplan"})[
-                        trip["option"] - 1
-                    ]
-                    .find("strong", attrs={"class": "current-price"})
-                    .string
-                )
-            break
-
-    room_price, room_price_currency = room_price.split(" ")
-    room_price = int(room_price)
-    print_c(
-        f'Hotel "{trip["hotel"]}": room "{trip["room"]}" (option {trip["option"]}) price is {room_price} {room_price_currency}',
-        "info",
-    )
-
-    if room_price == trip["price"]:
-        print_c("Room price hasn't changed", "good")
-    elif room_price > trip["price"]:
-        print_c("Room price is higher now", "good")
+    try:
+        html = await asks.get(hotel_url)
+    except gaierror:
+        print_c("Please check internet connection.", "bad")
     else:
-        print_c("Room price is cheaper, time to get some money back !", "bad")
-        await asks.post(
-            "https://maker.ifttt.com/trigger/HdCChecker_price_down/with/key/" + conf['ifttt_key'],
-            json={
-                "value1": trip["hotel"],
-                "value2": trip["price"] - room_price,
-                "value3": room_price_currency,
-            },
+
+        soup = BeautifulSoup(html.content, "html.parser")
+        room = soup.find("h3", string=trip["room"])
+
+        for parent in room.parents:
+            if parent.name == "li":
+
+                try:
+                    room_price = (
+                        parent.find_all("", attrs={"class": "rateplan"})[
+                            trip["option"] - 1
+                        ]
+                        .find("", attrs={"class": "current-price"})
+                        .string
+                    )
+                except IndexError:
+                    print_c("Room not found.", "bad")
+                break
+
+        room_price, room_price_currency = room_price.split(" ")
+        room_price = int(room_price)
+        print_c(
+            f'Hotel "{trip["hotel"]}": room "{trip["room"]}" (option {trip["option"]}) price is {room_price} {room_price_currency}',
+            "info",
         )
+
+        if room_price == trip["price"]:
+            print_c("Room price hasn't changed", "good")
+        elif room_price > trip["price"]:
+            print_c("Room price is higher now", "good")
+        else:
+            print_c("Room price is cheaper, time to get some money back !", "bad")
+            try:
+                await asks.post(
+                    "https://maker.ifttt.com/trigger/HdCChecker_price_down/with/key/"
+                    + conf["ifttt_key"],
+                    json={
+                        "value1": trip["hotel"],
+                        "value2": trip["price"] - room_price,
+                        "value3": room_price_currency,
+                    },
+                )
+            except gaierror:
+                print_c("Please check internet connection.", "bad")
 
 
 async def main():
